@@ -1,0 +1,207 @@
+const events = require('events');
+const ws     = require('ws');
+const https  = require('https');
+const fs     = require('fs');
+const uuid    = require('uuid');
+
+xSocket.Server = class xSocketServer extends events
+{
+
+    constructor(settings) {
+        super();
+        this.__settings = Object.assign({}, settings || {});
+        this.__http = undefined;
+        this.__ws   = undefined;
+        this.__socketObjectList = {};
+
+
+        const $this = this;
+        let options = $this.getSettingsVal('https', {});
+        if(typeof options['cert'] === 'string'){
+            options['cert'] = fs.readFileSync(options['cert']);
+        }
+        if(typeof options['key'] === 'string'){
+            options['key'] = fs.readFileSync(options['key']);
+        }
+        this.__http = https.createServer(options, (req, res) => {
+            $this.emit('https', req, res);
+            setTimeout(() => {
+                try{
+                    res.writeHead(404);
+                    res.end();
+                }catch (e){}
+            }, 5000);
+        });
+        this.__ws = new ws.Server({ 'server' : this.__http});
+        this.__http.listen($this.getPort(), () => {
+            $this.emit('listen');
+        });
+
+
+        this.__ws.on('connection', (wsClient, req) => {
+            wsClient.isConnection = () => {
+                return wsClient.readyState === 1;
+            };
+            wsClient.closeConnection = function (msg){
+                try{
+                    wsClient.close(1000, String(msg || 'close'));
+                }catch (e){}
+            };
+            wsClient.sendObject = (object) => {
+                try {
+                    if(wsClient.isConnection()){
+                        wsClient.send(JSON.stringify(object));
+                        return true;
+                    }
+                }catch (e){}
+                return false;
+            };
+            wsClient.query = ((str) => {
+                let queryString = typeof str === 'string' ? str.replace(/.*?\?/,"") : '';
+                let query      = {};
+                if (!queryString.length) return query;
+                let split = queryString.split('&');
+                for (let i in split)
+                {
+                    let key = split[i].split('=')[0];
+                    if (!key.length) continue;
+                    let val = split[i].split('=')[1] || undefined;
+                    let valArr = typeof val === 'string' ? val.split('#') : [].push(val);
+                    query[key] = valArr[0];
+                    if(valArr[1]){
+                        query['_hashTag_'] = valArr[1];
+                    }
+                }
+                return query;
+            })(req.url || '');
+            let SocketObject;
+            wsClient.query['xSOId']   = String(wsClient.query['xSOId'] || '');
+            wsClient.query['xSOSign'] = String(wsClient.query['xSOSign'] || '');
+            if(wsClient.query['xSOId'].length && wsClient.query['xSOSign'].length){
+                let s = $this.getSocketObject(wsClient.query['xSOId']);
+                if(s && s.getSign() === wsClient.query['xSOSign']){
+                    if(s.update(wsClient)){
+                        wsClient.sendObject(['SO|update', {
+                            'xSOId': s.getID(),
+                            'xSOSign' : s.getSign()
+                        }]);
+                        SocketObject = s;
+                    }
+                }
+            }
+            if(!SocketObject){
+                wsClient.query['xSOId'] = uuid.v4();
+                wsClient.query['xSOSign'] = uuid.v4();
+                SocketObject = new xSocket.xSocketObject(true, req);
+                if(SocketObject.update(wsClient)){
+                    wsClient.sendObject(['SO|update', {
+                        'xSOId': SocketObject.getID(),
+                        'xSOSign' : SocketObject.getSign()
+                    }]);
+                    $this.__socketObjectList[SocketObject.getID()] = SocketObject;
+                    $this.emit('connect', SocketObject);
+                    let SocketObjectTimeout = parseInt($this.getSettingsVal('socketObjectTimeout', 0));
+                    if(SocketObjectTimeout !== SocketObjectTimeout || SocketObjectTimeout < 0){
+                        SocketObjectTimeout = 0;
+                        console.warn('[warn|xSocket]', 'socketObjectTimeout invalid value,', 'set default is 0');
+                    }
+                    let soTimeout = undefined;
+                    SocketObject.on('disconnect', (SocketObject) => {
+                        soTimeout = setTimeout((SocketObject) => {
+                            SocketObject.destroy('socketObjectTimeout');
+                        }, SocketObjectTimeout, SocketObject);
+                        SocketObject.once('connect', () => {
+                            if(soTimeout){
+                                try{
+                                    clearTimeout(soTimeout);
+                                    soTimeout = undefined;
+                                }catch (e){}
+                            }
+                        });
+                    });
+                    SocketObject.once('destroy', (SocketObject) => {
+                        wsClient.closeConnection(SocketObject.getDestroy() || 'destroy');
+                        delete $this.__socketObjectList[SocketObject.getID()];
+                        if(soTimeout){
+                            try{
+                                clearTimeout(soTimeout);
+                                soTimeout = undefined;
+                            }catch (e){}
+                        }
+                    });
+                }else{
+                    wsClient.closeConnection('update');
+                }
+            }
+            wsClient.onmessage = (e) => {
+                let msg = String(e.data || '');
+                if(msg === 'ping'){
+                    return wsClient.sendMessage('pong');
+                }
+                if(SocketObject){
+                    try{
+                        let body = JSON.parse(msg);
+                        if( typeof body === 'object' && typeof body[0] === 'string' && typeof body[1] === 'object'){
+                            SocketObject.emit('ws|message', body[0], body[1]);
+                        }
+                    }catch (e){}
+                }
+            };
+            wsClient.onclose = (e) => {
+                let msg = e.reason || 'close';
+                if(SocketObject){
+                    SocketObject.emit('ws|disconnect', msg);
+                }
+                $this.emit('ws|disconnect', msg);
+            };
+            $this.emit('ws|connect', wsClient);
+        });
+    }
+
+    /**
+     *
+     * @returns {{}}
+     */
+    getSocketObjectList(){
+        return this.__socketObjectList || {};
+    }
+
+    /**
+     *
+     * @param ID
+     * @returns {*|boolean}
+     */
+    getSocketObject(ID){
+        return this.getSocketObjectList()[ID] || false;
+    }
+
+    /**
+     *
+     * @returns {number}
+     */
+    getPort(){
+        return this.getSettings()['port'] || 443;
+    }
+
+    /**
+     *
+     * @returns {{}}
+     */
+    getSettings(){
+        return this.__settings || {};
+    }
+
+    /**
+     *
+     * @param key
+     * @param def
+     * @returns {*}
+     */
+    getSettingsVal(key, def){
+        return this.getSettings()[key] || def;
+    }
+
+
+
+
+}

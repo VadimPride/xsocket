@@ -1,0 +1,32 @@
+{
+  "name": "xsocket",
+  "description": "WebSocket server/client module",
+  "version": "1.0.0",
+  "author": "pr!de",
+  "license": "MIT",
+  "homepage": "https://github.com/VadimPride/xsocket",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VadimPride/xsocket"
+  },
+  "keywords": [
+    "socket",
+    "ws",
+    "wss",
+    "Websocket",
+    "message",
+    "client",
+    "server",
+    "callback",
+    "ready",
+    "promise",
+    "socket.io"
+  ],
+  "dependencies": {
+    "events": "^3.2.0",
+    "fs": "0.0.1-security",
+    "https": "^1.0.0",
+    "uuid": "^8.3.2",
+    "ws": "^7.4.2"
+  }
+}
