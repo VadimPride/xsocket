@@ -19,7 +19,7 @@ xServer.on('error', (err) => {
 });
 
 xServer.on('listen', () => {
-    console.log('Listen', xServer.getPort());
+    console.log('Listen event', xServer.getPort());
 });
 
 xServer.on('connect', (xSocketObject) => {
@@ -66,6 +66,13 @@ xServer.on('connect', (xSocketObject) => {
     xSocketObject.on('destroy', (xSocketObject, msg) => {
         console.log('Destroy event:', xSocketObject.getID(), msg);
     });
+});
+
+// Listen
+xServer.listen().then(() => {
+    console.log('Listen then');
+}).catch(() => {
+    console.log('Listen error', e.message);
 });
 ```
 

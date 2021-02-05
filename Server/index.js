@@ -12,6 +12,7 @@ xSocket.Server = class xSocketServer extends events
         this.__settings = Object.assign({}, settings || {});
         this.__http = undefined;
         this.__ws   = undefined;
+        this.__isListen = undefined;
         this.__socketObjectList = {};
 
 
@@ -33,11 +34,6 @@ xSocket.Server = class xSocketServer extends events
             }, 5000);
         });
         this.__ws = new ws.Server({ 'server' : this.__http});
-        this.__http.listen($this.getPort(), () => {
-            $this.emit('listen');
-        });
-
-
         this.__ws.on('connection', (wsClient, req) => {
             wsClient.isConnection = () => {
                 return wsClient.readyState === 1;
@@ -201,7 +197,38 @@ xSocket.Server = class xSocketServer extends events
         return this.getSettings()[key] || def;
     }
 
+    /**
+     *
+     * @returns {Promise}
+     */
+    listen(){
+        const $this = this;
+        return new Promise((resolve, reject) => {
+            if($this.__isListen){
+                return reject(new Error('repeat'))
+            }
+            if($this.__isListen === null){
+                $this.once('listen', () => {
+                   resolve();
+                });
+                $this.once('error', (e) => {
+                    reject(e);
+                });
+                return;
+            }
+            $this.__isListen = null;
+            try{
+                $this.__http.listen($this.getPort(), () => {
+                    $this.__isListen = true;
+                    $this.emit('listen');
+                    resolve();
+                });
+            }catch (e){
+                $this.emit('error', e);
+                reject(e);
+            }
 
-
+        });
+    }
 
 }
