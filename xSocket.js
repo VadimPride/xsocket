@@ -181,6 +181,14 @@ xSocket.helpers = new function helpersObject (){
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c,r){return ('x'== c ? ( r = Math.random()*16|0) : (r&0x3|0x8)).toString(16);});
     };
 
+    /**
+     *
+     * @param uid
+     * @returns {boolean}
+     */
+    this.checkUID = function (uid){
+        return !!(new RegExp("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")).test(String(uid));
+    };
 };
 
 xSocket.Data = function xSocketData(__isOutput){
@@ -587,6 +595,7 @@ xSocket.xSocketObject = function (__isServer, __req){
                 !type.length ||
                 typeof data !== 'object' ||
                 typeof data['ID'] !== 'string' ||
+                !xSocket.helpers.checkUID(data['ID']) ||
                 !data['ID'].length ||
                 typeof data['data'] !== 'object'
             ){

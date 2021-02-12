@@ -288,6 +288,7 @@ xSocket.xSocketObject = function (__isServer, __req){
                 !type.length ||
                 typeof data !== 'object' ||
                 typeof data['ID'] !== 'string' ||
+                !xSocket.helpers.checkUID(data['ID']) ||
                 !data['ID'].length ||
                 typeof data['data'] !== 'object'
             ){
