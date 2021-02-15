@@ -13,6 +13,7 @@ xSocket.Server = class xSocketServer extends events
         this.__http = undefined;
         this.__ws   = undefined;
         this.__isListen = undefined;
+        this.__useCallback = {};
         this.__socketObjectList = {};
 
 
@@ -95,7 +96,15 @@ xSocket.Server = class xSocketServer extends events
                         'xSOSign' : SocketObject.getSign()
                     }]);
                     $this.__socketObjectList[SocketObject.getID()] = SocketObject;
-                    $this.emit('connect', SocketObject);
+                    if($this.getSettingsVal('auth', false)){
+                        $this.useEmit('auth').then(() => {
+                            $this.emit('connect', SocketObject);
+                        }).catch((e) => {
+                            SocketObject.destroy('auth|'+(e.message || 'denied'));
+                        });
+                    }else{
+                        $this.emit('connect', SocketObject);
+                    }
                     let SocketObjectTimeout = parseInt($this.getSettingsVal('socketObjectTimeout', 0));
                     if(SocketObjectTimeout !== SocketObjectTimeout || SocketObjectTimeout < 0){
                         SocketObjectTimeout = 0;
@@ -195,6 +204,47 @@ xSocket.Server = class xSocketServer extends events
      */
     getSettingsVal(key, def){
         return this.getSettings()[key] || def;
+    }
+
+    /**
+     *
+     * @param target
+     * @param data
+     * @returns {Promise}
+     */
+    useEmit(target, data){
+      const $this = this;
+      return new Promise((resolve, reject) => {
+          let callback = typeof $this.__useCallback[target] == 'function' && $this.__useCallback[target] instanceof Promise ? $this.__useCallback[target] : false;
+          if(!callback){
+              callback = new Promise((resolve, reject) => {
+                  reject(new Error('PermissionDeniedDefault'));
+              });
+          }
+          callback(data).then((e) => {
+              resolve(e);
+          }).catch((e) => {
+              reject(e);
+          });
+      })
+    }
+
+    /**
+     *
+     * @param target
+     * @param callback
+     * @returns {xSocket.xSocketServer}
+     */
+    use(target, callback){
+        if(typeof target !== 'string' || target.length < 1){
+            throw new Error('Invalid target value!');
+        }
+        if(typeof callback !== 'function' || !(callback instanceof Promise)){
+            throw new Error('Invalid callback! Callback is not Promise instant!');
+        }
+        this.__useCallback[target] = callback;
+        this.emit('use|append', target, callback);
+        return this;
     }
 
     /**
