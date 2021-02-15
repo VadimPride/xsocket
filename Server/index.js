@@ -97,7 +97,7 @@ xSocket.Server = class xSocketServer extends events
                     }]);
                     $this.__socketObjectList[SocketObject.getID()] = SocketObject;
                     if($this.getSettingsVal('auth', false)){
-                        $this.useEmit('auth').then(() => {
+                        $this.useEmit('auth', SocketObject).then(() => {
                             $this.emit('connect', SocketObject);
                         }).catch((e) => {
                             SocketObject.destroy('auth|'+(e.message || 'denied'));
@@ -215,18 +215,19 @@ xSocket.Server = class xSocketServer extends events
     useEmit(target, data){
       const $this = this;
       return new Promise((resolve, reject) => {
-          let callback = typeof $this.__useCallback[target] == 'function' && $this.__useCallback[target] instanceof Promise ? $this.__useCallback[target] : false;
+          const callback = typeof $this.__useCallback[target] == 'function' ? $this.__useCallback[target] : false;
+          const successCallback = () => {
+              resolve();
+          };
+          const failedCallback = (message) => {
+              reject(new Error(typeof message === 'string' ? message : ''));
+          };
           if(!callback){
-              callback = new Promise((resolve, reject) => {
-                  reject(new Error('PermissionDeniedDefault'));
-              });
+              return failedCallback('');
           }
-          callback(data).then((e) => {
-              resolve(e);
-          }).catch((e) => {
-              reject(e);
-          });
-      })
+
+          callback.call($this, data, successCallback, failedCallback);
+      });
     }
 
     /**
@@ -239,8 +240,8 @@ xSocket.Server = class xSocketServer extends events
         if(typeof target !== 'string' || target.length < 1){
             throw new Error('Invalid target value!');
         }
-        if(typeof callback !== 'function' || !(callback instanceof Promise)){
-            throw new Error('Invalid callback! Callback is not Promise instant!');
+        if(typeof callback !== 'function'){
+            throw new Error('Invalid callback!');
         }
         this.__useCallback[target] = callback;
         this.emit('use|append', target, callback);
