@@ -696,7 +696,6 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
             }
             __ws = null;
             var url = __urlList.length > 1 ? xSocket.helpers.getRandInt(0, __urlList.length - 1) : __urlList[0];
-            console.log(url);
             url += (url.indexOf('?') === -1 ? '?' : '&');
             if(__SocketObject.getID().length && __SocketObject.getSign().length){
                 __query['xSOId'] = String(__SocketObject.getID());
@@ -784,7 +783,14 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
                 $this.emit('ws|disconnect', msg);
             };
         });
+    };
 
+    /**
+     *
+     * @returns {*}
+     */
+    this.send = function (){
+        return __SocketObject.send.apply(this, arguments);
     };
 
     /**

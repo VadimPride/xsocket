@@ -1,7 +1,7 @@
 {
   "name": "xsocket",
   "description": "WebSocket server/client module",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "author": "pr!de",
   "license": "MIT",
   "homepage": "https://github.com/VadimPride/xsocket",
