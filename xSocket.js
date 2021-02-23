@@ -756,13 +756,13 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
             var msgInc = 0;
             var pingTimeout = setInterval(function (){
                 ws.sendMessage('ping');
-            }, 5000);
+            }, 10000);
             var pongTimeout = setInterval(function (){
                 if(!msgInc){
                     ws.closeConnection('pongTimeout');
                 }
                 msgInc = 0;
-            }, 15000);
+            }, 23000);
             ws.onmessage = function (e){
                 msgInc++;
                 var msg = String(e.data || '');

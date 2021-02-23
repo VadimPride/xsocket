@@ -151,7 +151,7 @@ xSocket.Server = class xSocketServer extends events
                     wsClient.closeConnection('pingTimeout');
                 }
                 msgInc = 0;
-            }, 15000);
+            }, 23000);
             wsClient.onmessage = (e) => {
                 msgInc++;
                 let msg = String(e.data || '');
