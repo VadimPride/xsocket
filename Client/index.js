@@ -104,7 +104,18 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
                 msg = e.message;
                 $this.emit('ws|error', e.message, ws);
             };
+            var msgInc = 0;
+            var pingTimeout = setInterval(function (){
+                ws.sendMessage('ping');
+            }, 5000);
+            var pongTimeout = setInterval(function (){
+                if(!msgInc){
+                    ws.closeConnection('pongTimeout');
+                }
+                msgInc = 0;
+            }, 15000);
             ws.onmessage = function (e){
+                msgInc++;
                 var msg = String(e.data || '');
                 if(msg === 'pong'){
                     return;
@@ -129,6 +140,8 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
                 }catch (e){}
             };
             ws.onclose = function (e){
+                try{ clearInterval(pingTimeout); }catch (e){}
+                try{ clearInterval(pongTimeout); }catch (e){}
                 __ws = undefined;
                 msg = msg || e.reason || 'close';
                 if(isAuth){

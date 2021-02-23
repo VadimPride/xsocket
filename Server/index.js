@@ -138,7 +138,15 @@ xSocket.Server = class xSocketServer extends events
                     wsClient.closeConnection('update');
                 }
             }
+            let msgInc = 0;
+            var pingTimeout = setInterval(function (){
+                if(!msgInc){
+                    wsClient.closeConnection('pingTimeout');
+                }
+                msgInc = 0;
+            }, 15000);
             wsClient.onmessage = (e) => {
+                msgInc++;
                 let msg = String(e.data || '');
                 if(msg === 'ping'){
                     return wsClient.sendMessage('pong');
@@ -153,11 +161,13 @@ xSocket.Server = class xSocketServer extends events
                 }
             };
             wsClient.onclose = (e) => {
+                try{clearInterval(pingTimeout); }catch (e){}
                 let msg = e.reason || 'close';
                 if(SocketObject){
                     SocketObject.emit('ws|disconnect', msg);
                 }
                 $this.emit('ws|disconnect', msg);
+
             };
             $this.emit('ws|connect', wsClient);
         });
