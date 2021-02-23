@@ -44,12 +44,19 @@ xSocket.Server = class xSocketServer extends events
                     wsClient.close(1000, String(msg || 'close'));
                 }catch (e){}
             };
-            wsClient.sendObject = (object) => {
+
+            wsClient.sendMessage = (msg) => {
                 try {
                     if(wsClient.isConnection()){
-                        wsClient.send(JSON.stringify(object));
+                        wsClient.send(String(msg));
                         return true;
                     }
+                }catch (e){}
+                return false;
+            };
+            wsClient.sendObject = (object) => {
+                try {
+                    return wsClient.sendMessage(JSON.stringify(object))
                 }catch (e){}
                 return false;
             };
