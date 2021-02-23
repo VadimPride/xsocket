@@ -273,6 +273,9 @@ xSocket.xSocketObject = function (__isServer, __req){
         });
         $this.on('ws|disconnect', function (msg){
             $this.emit('disconnect', $this, String(msg || ''));
+            if(msg === 'end'){
+                $this.destroy('end');
+            }
         });
         $this.on('ws|connect', function (){
             $this.emit('connect', $this);
