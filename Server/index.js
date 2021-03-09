@@ -98,18 +98,22 @@ xSocket.Server = class xSocketServer extends events
                 wsClient.query['xSOSign'] = uuid.v4();
                 SocketObject = new xSocket.xSocketObject(true, req);
                 if(SocketObject.update(wsClient)){
-                    wsClient.sendObject(['SO|update', {
-                        'xSOId': SocketObject.getID(),
-                        'xSOSign' : SocketObject.getSign()
-                    }]);
                     $this.__socketObjectList[SocketObject.getID()] = SocketObject;
                     if($this.getSettingsVal('auth', false)){
                         $this.useEmit('auth', SocketObject).then(() => {
+                            wsClient.sendObject(['SO|update', {
+                                'xSOId': SocketObject.getID(),
+                                'xSOSign' : SocketObject.getSign()
+                            }]);
                             $this.emit('connect', SocketObject);
                         }).catch((e) => {
                             SocketObject.destroy('auth|'+(e.message || 'denied'));
                         });
                     }else{
+                        wsClient.sendObject(['SO|update', {
+                            'xSOId': SocketObject.getID(),
+                            'xSOSign' : SocketObject.getSign()
+                        }]);
                         $this.emit('connect', SocketObject);
                     }
                     let SocketObjectTimeout = parseInt($this.getSettingsVal('socketObjectTimeout', 0));
@@ -295,7 +299,6 @@ xSocket.Server = class xSocketServer extends events
                 $this.emit('error', e);
                 reject(e);
             }
-
         });
     }
 
