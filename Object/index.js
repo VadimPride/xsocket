@@ -160,7 +160,7 @@ xSocket.xSocketObject = function (__isServer, __req){
             if(typeof data !== 'object'){
                 throw new Error('Invalid data value');
             }
-            ttl = parseInt(ttl || 0);
+            ttl = parseInt(ttl || 4000);
             if(typeof ttl !== 'number' || ttl !== ttl || ttl < 0){
                 throw new Error('Invalid ttl value');
             }
@@ -168,13 +168,14 @@ xSocket.xSocketObject = function (__isServer, __req){
             socketData.__ID = xSocket.helpers.getUID();
             socketData.__type = type;
             socketData.__data = data;
-            var timeout = setTimeout(function (){
-                socketData.destroy('ttl');
-            }, ttl);
             __socketDataList[socketData.getID()] = socketData;
             socketData.on('destroy', function (socketData){
                 delete __socketDataList[socketData.getID()];
+                return reject(new Error('ttl'));
             });
+            var timeout = setTimeout(function (){
+                socketData.destroy('ttl');
+            }, ttl);
             $this.getWsReady().then(function (ws){
                 if(ttl && socketData.getDestroy() === 'ttl'){
                    return reject(new Error('ttl'));
