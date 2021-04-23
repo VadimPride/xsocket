@@ -511,6 +511,28 @@ xSocket.xSocketObject = function (__isServer, __req){
 
     /**
      *
+     * @param method
+     * @param data
+     * @param ttl
+     * @returns {Promise<object>}
+     */
+    this.sendReadyResponse = function (method, data, ttl){
+        return new Promise(function (resolve, reject){
+            $this.send(method, data, ttl).then((xSocketData) => {
+                xSocketData.on('response', function (data, err){
+                    if(err){
+                        return reject(new Error(err));
+                    }
+                    resolve(data);
+                });
+            }).catch(function (e){
+                reject(e);
+            })
+        });
+    }
+
+    /**
+     *
      * @param msg
      * @returns {boolean}
      */
@@ -808,10 +830,18 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
 
     /**
      *
-     * @returns {*}
+     * @returns {Promise<xSocket.Data>}
      */
     this.send = function (){
         return __SocketObject.send.apply(this, arguments);
+    };
+
+    /**
+     *
+     * @returns {Promise<object>}
+     */
+    this.sendReadyResponse = function (){
+        return __SocketObject.sendReadyResponse.apply(this, arguments);
     };
 
     /**

@@ -158,10 +158,18 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
 
     /**
      *
-     * @returns {*}
+     * @returns {Promise<xSocket.Data>}
      */
     this.send = function (){
         return __SocketObject.send.apply(this, arguments);
+    };
+
+    /**
+     *
+     * @returns {Promise<object>}
+     */
+    this.sendReadyResponse = function (){
+        return __SocketObject.sendReadyResponse.apply(this, arguments);
     };
 
     /**
