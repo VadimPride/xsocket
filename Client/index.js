@@ -144,9 +144,7 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
                 try{ clearInterval(pongTimeout); }catch (e){}
                 __ws = undefined;
                 msg = msg || e.reason || 'close';
-                if(isAuth){
-                    __SocketObject.emit('ws|disconnect', msg);
-                }
+                __SocketObject.emit('ws|disconnect', msg);
                 $this.emit('ws|disconnect', msg);
             };
         });
