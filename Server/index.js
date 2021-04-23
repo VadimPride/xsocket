@@ -107,7 +107,7 @@ xSocket.Server = class xSocketServer extends events
                             }]);
                             $this.emit('connect', SocketObject);
                         }).catch((e) => {
-                            SocketObject.destroy('auth|'+(e.message || 'denied'));
+                            SocketObject.destroy(e.message || 'deniedAuth');
                         });
                     }else{
                         wsClient.sendObject(['SO|update', {
