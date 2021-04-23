@@ -850,6 +850,9 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
         __SocketObject.on('update', function (SocketObject){
             $this.emit('update', SocketObject);
         });
+        __SocketObject.on('ws|error', function (e,q){
+            $this.emit('error', e, q);
+        });
         $this.getConnection()['catch'](function (e){
             console.error(e);
         });
