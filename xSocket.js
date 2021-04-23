@@ -802,6 +802,10 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
         });
     };
 
+    this.isNode = function (){
+        return global && process;
+    };
+
     /**
      *
      * @returns {*}
@@ -849,11 +853,13 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
         $this.getConnection()['catch'](function (e){
             console.error(e);
         });
-        window.addEventListener("unload", function() {
-            try{
-                __ws.closeConnection('end');
-            }catch (e){}
-        });
+        if(!$this.isNode()){
+            window.addEventListener("unload", function() {
+                try{
+                    __ws.closeConnection('end');
+                }catch (e){}
+            });
+        }
     })();
 
 };
