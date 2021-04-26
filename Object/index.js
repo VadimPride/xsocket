@@ -123,6 +123,14 @@ xSocket.xSocketObject = function (__isServer, __req){
 
     /**
      *
+     * @returns {boolean}
+     */
+    this.isDestroy = function (){
+        return !!this.getDestroy();
+    }
+
+    /**
+     *
      * @returns {Promise}
      */
     this.getWsReady = function (){
