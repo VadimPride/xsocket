@@ -7,4 +7,5 @@
 window.xSocket = function xSocket(){
     xSocket.Client.apply(this, arguments);
 };
+window.xSocket.window = window;
 window.xSocket.WebSocket = WebSocket;

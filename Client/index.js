@@ -150,8 +150,8 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
         });
     };
 
-    this.isNode = function (){
-        return global && process;
+    this.getWindow = function (){
+        return xSocket.window || false;
     };
 
     /**
@@ -215,8 +215,8 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
         $this.getConnection()['catch'](function (e){
             console.error(e);
         });
-        if(!$this.isNode()){
-            window.addEventListener("unload", function() {
+        if($this.getWindow()){
+            $this.getWindow().addEventListener("unload", function() {
                 try{
                     __ws.closeConnection('end');
                 }catch (e){}
