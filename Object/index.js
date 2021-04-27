@@ -219,7 +219,7 @@ xSocket.xSocketObject = function (__isServer, __req){
      */
     this.sendReadyResponse = function (method, data, ttl){
         return new Promise(function (resolve, reject){
-            $this.send(method, data, ttl).then((xSocketData) => {
+            $this.send(method, data, ttl).then(function(xSocketData) {
                 xSocketData.on('response', function (data, err){
                     if(err){
                         return reject(new Error(err));
@@ -229,6 +229,24 @@ xSocket.xSocketObject = function (__isServer, __req){
             }).catch(function (e){
                 reject(e);
             })
+        });
+    }
+
+    /**
+     *
+     * @param xSocketData
+     * @param ttl
+     * @returns {Promise<{}>}
+     */
+    this.transportSocketData = function (xSocketData, ttl){
+        return new Promise(function(resolve, reject) {
+            $this.sendReadyResponse(xSocketData.getType(), xSocketData.getData(), ttl).then(function(data){
+                resolve(data);
+                xSocketData.response(data);
+            }).catch(function (e) {
+                reject(e);
+                xSocketData.destroy(e.message);
+            });
         });
     }
 
