@@ -172,6 +172,14 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
 
     /**
      *
+     * @returns {*}
+     */
+    this.transportSocketData = function (){
+        return __SocketObject.transportSocketData.apply(this, arguments);
+    };
+
+    /**
+     *
      * @param msg
      * @returns {*}
      */
