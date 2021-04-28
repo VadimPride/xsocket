@@ -138,7 +138,7 @@ xSocket.xSocketObject = function (__isServer, __req){
             if($this.getConnection()){
                 return resolve($this.getConnection());
             }
-            const destroyHandler = function(){
+            var destroyHandler = function(){
                 reject(new Error('destroy'));
             };
             $this.on('connect', function(){
@@ -230,7 +230,7 @@ xSocket.xSocketObject = function (__isServer, __req){
                 reject(e);
             })
         });
-    }
+    };
 
     /**
      *
@@ -248,7 +248,7 @@ xSocket.xSocketObject = function (__isServer, __req){
                 xSocketData.destroy(e.message);
             });
         });
-    }
+    };
 
     /**
      *

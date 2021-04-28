@@ -446,7 +446,7 @@ xSocket.xSocketObject = function (__isServer, __req){
             if($this.getConnection()){
                 return resolve($this.getConnection());
             }
-            const destroyHandler = function(){
+            var destroyHandler = function(){
                 reject(new Error('destroy'));
             };
             $this.on('connect', function(){
@@ -538,7 +538,7 @@ xSocket.xSocketObject = function (__isServer, __req){
                 reject(e);
             })
         });
-    }
+    };
 
     /**
      *
@@ -556,7 +556,7 @@ xSocket.xSocketObject = function (__isServer, __req){
                 xSocketData.destroy(e.message);
             });
         });
-    }
+    };
 
     /**
      *
@@ -867,6 +867,14 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
      */
     this.sendReadyResponse = function (){
         return __SocketObject.sendReadyResponse.apply(this, arguments);
+    };
+
+    /**
+     *
+     * @returns {*}
+     */
+    this.transportSocketData = function (){
+        return __SocketObject.transportSocketData.apply(this, arguments);
     };
 
     /**
