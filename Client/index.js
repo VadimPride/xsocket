@@ -172,6 +172,14 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
 
     /**
      *
+     * @returns {Promise<object>}
+     */
+    this.xSend = function (){
+        return __SocketObject.xSend.apply(this, arguments);
+    };
+
+    /**
+     *
      * @returns {*}
      */
     this.transportSocketData = function (){
