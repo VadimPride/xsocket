@@ -265,7 +265,7 @@ xSocket.xSocketObject = function (__isServer, __req){
                 xSocketData.response(data);
             }).catch(function (e) {
                 reject(e);
-                xSocketData.destroy(e.message);
+                xSocketData.response({'error' : e.message || ''});
             });
         });
     };
