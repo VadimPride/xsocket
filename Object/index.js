@@ -262,10 +262,10 @@ xSocket.xSocketObject = function (__isServer, __req){
         return new Promise(function(resolve, reject) {
             $this.sendReadyResponse(xSocketData.getType(), xSocketData.getData(), ttl).then(function(data){
                 resolve(data);
-                xSocketData.response(data);
+                xSocketData.resSuccess(data);
             }).catch(function (e) {
                 reject(e);
-                xSocketData.response({'error' : e.message || ''});
+                xSocketData.resError(e.message || '');
             });
         });
     };

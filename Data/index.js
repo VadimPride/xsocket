@@ -72,6 +72,27 @@ xSocket.Data = function xSocketData(__isOutput){
 
     /**
      *
+     * @param data
+     * @returns {Promise|*}
+     */
+    this.resSuccess = function (data){
+        if(typeof data === 'object' && data.error){
+            delete data.error;
+        }
+        return this.response(data);
+    };
+
+    /**
+     *
+     * @param msg
+     * @returns {Promise|*}
+     */
+    this.resError = function (msg){
+        return this.response({'error' : String(msg || 'unknown')});
+    };
+
+    /**
+     *
      * @param msg
      * @returns {boolean}
      */

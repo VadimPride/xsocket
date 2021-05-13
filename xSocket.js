@@ -267,6 +267,27 @@ xSocket.Data = function xSocketData(__isOutput){
 
     /**
      *
+     * @param data
+     * @returns {Promise|*}
+     */
+    this.resSuccess = function (data){
+        if(typeof data === 'object' && data.error){
+            delete data.error;
+        }
+        return this.response(data);
+    };
+
+    /**
+     *
+     * @param msg
+     * @returns {Promise|*}
+     */
+    this.resError = function (msg){
+        return this.response({'error' : String(msg || 'unknown')});
+    };
+
+    /**
+     *
      * @param msg
      * @returns {boolean}
      */
@@ -571,10 +592,10 @@ xSocket.xSocketObject = function (__isServer, __req){
         return new Promise(function(resolve, reject) {
             $this.sendReadyResponse(xSocketData.getType(), xSocketData.getData(), ttl).then(function(data){
                 resolve(data);
-                xSocketData.response(data);
+                xSocketData.resSuccess(data);
             }).catch(function (e) {
                 reject(e);
-                xSocketData.response({'error' : e.message || ''});
+                xSocketData.resError(e.message || '');
             });
         });
     };
