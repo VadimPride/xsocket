@@ -168,9 +168,11 @@ xSocket.xSocketObject = function (__isServer, __req){
             if(typeof data !== 'object'){
                 throw new Error('Invalid data value');
             }
-            ttl = parseInt(ttl || 4000);
+            var DefaultTTL = 5000;
+            ttl = parseInt(typeof ttl === 'number' ? ttl : DefaultTTL);
             if(typeof ttl !== 'number' || ttl !== ttl || ttl < 0){
-                throw new Error('Invalid ttl value');
+                ttl = DefaultTTL;
+                console.warn('Invalid TTL value:', ttl)
             }
             var socketData = new xSocket.Data(true);
             socketData.__ID = xSocket.helpers.getUID();
