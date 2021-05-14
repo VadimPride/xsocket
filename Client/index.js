@@ -150,9 +150,6 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
         });
     };
 
-    this.getWindow = function (){
-        return xSocket.window || false;
-    };
 
     /**
      *
@@ -231,8 +228,14 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
         $this.getConnection()['catch'](function (e){
             console.error(e);
         });
-        if($this.getWindow()){
-            $this.getWindow().addEventListener("unload", function() {
+        if(xSocket.helpers.getWindow()){
+            xSocket.helpers.getWindow().addEventListener("unload", function() {
+                try{
+                    __ws.closeConnection('end');
+                }catch (e){}
+            });
+        }else if(xSocket.helpers.getProcess()){
+            xSocket.helpers.getProcess().on('exit', function (){
                 try{
                     __ws.closeConnection('end');
                 }catch (e){}

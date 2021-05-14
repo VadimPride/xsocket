@@ -2,6 +2,22 @@ xSocket.helpers = new function helpersObject (){
 
     /**
      *
+     * @returns {Window|*}
+     */
+    this.getWindow = function (){
+        return xSocket.window;
+    };
+
+    /**
+     *
+     * @returns {any}
+     */
+    this.getProcess = function (){
+        return xSocket.process;
+    };
+
+    /**
+     *
      * @param min
      * @param max
      * @returns {number}
