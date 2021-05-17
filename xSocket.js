@@ -211,17 +211,27 @@ xSocket.helpers = new function helpersObject (){
     };
 };
 
-xSocket.Data = function xSocketData(__isOutput){
-
+/**
+ *
+ * @param __isOutput
+ * @param __object
+ * @constructor
+ */
+xSocket.Data = function xSocketData(__isOutput, __object){
+    __object = typeof __object === 'object' ? __object : {};
     xSocket.helpers.EventEmitter.call(this);
     this.setMaxListeners(0);
 
+    var DEFAULT_TIMEOUT = 10000;
+    var DEFAULT_TTL     = 3000;
     var $this     = this;
-    this.__ID      = ''
-    this.__type    = '';
-    this.__data    = {};
+    this.__ID      = typeof __object.ID === 'string' ? __object.ID : '';
+    this.__type    = typeof __object.type === 'string' ? __object.type : '';
+    this.__data    = typeof __object.data === 'object' ? __object.data : {};
+    this.__ttl     = typeof __object.ttl === 'number' && __object.ttl % 1 === 0  && __object.ttl >= 0 ? __object.ttl : DEFAULT_TTL;
     this.__resData = {};
-    this.__status  = 0;
+    this.__error   = false;
+    this.__status  = xSocket.Data.STATUS_NEW;
     this.__destroy = false;
 
     /**
@@ -238,6 +248,14 @@ xSocket.Data = function xSocketData(__isOutput){
      */
     this.getType = function (){
         return String(this.__type);
+    };
+
+    /**
+     *
+     * @returns {number}
+     */
+    this.getTTL = function (){
+        return this.__ttl;
     };
 
     /**
@@ -285,23 +303,98 @@ xSocket.Data = function xSocketData(__isOutput){
 
     /**
      *
-     * @param data
-     * @returns {Promise|*}
+     * @returns {string|boolean}
      */
-    this.resSuccess = function (data){
-        if(typeof data === 'object' && data.error){
-            delete data.error;
-        }
-        return this.response(data);
+    this.getError = function (){
+        return this.__error || this.getDestroy() || false;
     };
 
     /**
      *
-     * @param msg
-     * @returns {Promise|*}
+     * @returns {boolean}
      */
-    this.resError = function (msg){
-        return this.response({'error' : String(msg || 'unknown')});
+    this.isNew = function (){
+        return this.__status === xSocket.Data.STATUS_NEW;
+    };
+
+    /**
+     *
+     * @returns {boolean}
+     */
+    this.isSend = function (){
+        return this.__status === xSocket.Data.STATUS_SEND;
+    };
+
+    /**
+     *
+     * @returns {boolean}
+     */
+    this.isResponse = function (){
+        return this.__status === xSocket.Data.STATUS_RESPONSE;
+    };
+
+    /**
+     *
+     * @returns {Promise}
+     */
+    this.send = function (){
+        return new Promise(function (resolve, reject) {
+            if($this.getDestroy()){
+                return reject(new Promise($this.getDestroy));
+            }
+            if(__isOutput) {
+                $this.emit('send');
+            }
+            $this.on('response', function (data){
+                resolve(data);
+            });
+            $this.on('destroy', function (e){
+                reject(new Error(e));
+            });
+        });
+    };
+
+
+    /**
+     *
+     * @param status
+     * @returns {boolean}
+     */
+    this.setStatus = function (status){
+        if(
+            [xSocket.Data.STATUS_SEND, xSocket.Data.STATUS_RESPONSE].indexOf(status) === -1 ||
+            this.getStatus() === xSocket.Data.STATUS_RESPONSE ||
+            this.getStatus() === status
+        ){
+            return false;
+        }
+        this.__status = status;
+        this.emit('setStatus', status);
+        return true;
+    };
+
+    /**
+     *
+     * @param errorMsg
+     * @returns {boolean}
+     */
+    this.setError = function (errorMsg){
+        if(typeof errorMsg !== 'string'){
+            return false;
+        }
+        this.__error = String(errorMsg);
+        return true;
+    };
+
+    /**
+     *
+     * @param data
+     * @returns {boolean}
+     */
+    this.setResData = function (data){
+        if (typeof data !== 'object') return false;
+        this.__resData = data;
+        return true;
     };
 
     /**
@@ -314,10 +407,10 @@ xSocket.Data = function xSocketData(__isOutput){
             return false;
         }
         this.__destroy = String(typeof msg === 'string' && msg.length ? msg :  'destroy');
-        if(this.__status !== xSocket.Data.STATUS_RESPONCE){
-            $this.emit('response', {}, this.__destroy);
+        if(this.getStatus() !== xSocket.Data.STATUS_RESPONSE){
+            $this.setStatus(xSocket.Data.STATUS_RESPONSE);
         }
-        this.emit('destroy', $this);
+        this.emit('destroy', this.__destroy);
         // Clear all events
         this.clearAllListerens();
     };
@@ -326,26 +419,40 @@ xSocket.Data = function xSocketData(__isOutput){
      *
      */
     (function (){
+        var ttlDestroy = setTimeout(function (){
+            $this.destroy('ttl');
+        }, $this.getTTL());
         var destroyTimeout = setTimeout(function ($this){
             $this.destroy('responseTimeout');
-        }, 10000, $this);
+        }, $this.getTTL() > DEFAULT_TIMEOUT ? $this.getTTL() : DEFAULT_TIMEOUT, $this);
+
         $this.once('destroy', function (){
             try{
                 clearTimeout(destroyTimeout);
             }catch (e){}
+            try{
+                clearTimeout(ttlDestroy);
+            }catch (e){}
         });
-        $this.once('response', function (data){
-            $this.__status = xSocket.Data.STATUS_RESPONCE;
-            $this.__resData = data;
-            $this.destroy('response');
+
+        $this.on('setStatus', function (status){
+            if(status === xSocket.Data.STATUS_RESPONSE){
+                $this.emit('response', $this.getResData(), $this.getError())
+                $this.destroy('response');
+            }
         });
     })();
 
 };
 xSocket.Data.STATUS_NEW      = 0;
 xSocket.Data.STATUS_SEND     = 1;
-xSocket.Data.STATUS_RESPONCE = 2;
+xSocket.Data.STATUS_RESPONSE = 2;
 
+/**
+ *
+ * @param __isServer
+ * @param __req
+ */
 xSocket.xSocketObject = function (__isServer, __req){
 
     // Extend
@@ -506,58 +613,39 @@ xSocket.xSocketObject = function (__isServer, __req){
      * @param type
      * @param data
      * @param ttl
-     * @returns {Promise}
+     * @returns {Promise<xSocket.Data>}
      */
     this.send = function (type, data, ttl){
-        var p = new Promise(function (resolve, reject) {
-            if(typeof type !== 'string' || !type.length){
-                throw new Error('Invalid type value');
-            }
-            if(typeof data !== 'object'){
-                throw new Error('Invalid data value');
-            }
-            var DefaultTTL = 5000;
-            ttl = parseInt(typeof ttl === 'number' ? ttl : DefaultTTL);
-            if(typeof ttl !== 'number' || ttl !== ttl || ttl < 0){
-                ttl = DefaultTTL;
-                console.warn('Invalid TTL value:', ttl)
-            }
-            var socketData = new xSocket.Data(true);
-            socketData.__ID = xSocket.helpers.getUID();
-            socketData.__type = type;
-            socketData.__data = data;
-            __socketDataList[socketData.getID()] = socketData;
-            socketData.on('destroy', function (socketData){
-                delete __socketDataList[socketData.getID()];
-                return reject(new Error('ttl'));
+        var sendPromise = new Promise(function (resolve, reject) {
+            var socketData = new xSocket.Data(true, {
+                'ID' : xSocket.helpers.getUID(),
+                'type' : type,
+                'data' : data,
+                'ttl' : ttl
             });
-            var timeout = setTimeout(function (){
-                socketData.destroy('ttl');
-            }, ttl);
+            if(socketData.getTTL()){
+                __socketDataList[socketData.getID()] = socketData;
+                socketData.on('destroy', function (){
+                    delete __socketDataList[socketData.getID()];
+                });
+            }
+            resolve(socketData);
             $this.getWsReady().then(function (ws){
-                if(ttl && socketData.getDestroy() === 'ttl'){
-                   return reject(new Error('ttl'));
-                }
-                if(ws.sendObject(['SD|create',
-                    {
+                if(!ws.sendObject(['SD|create', {
                         'ID' : socketData.getID(),
                         'type' : socketData.getType(),
+                        'ttl' : socketData.getTTL(),
                         'data' : socketData.getData()
-                    }
-                ])){
-                    resolve(socketData);
-                    try{clearTimeout(timeout);}catch (e){}
-                }else{
-                    var msg = 'Failed send #54te8ta65';
-                    reject(new Error(msg));
-                    socketData.destroy(msg);
+                }])){
+                    return socketData.destroy('Failed send #54te8ta65');
                 }
+                socketData.setStatus(socketData.getTTL() ? xSocket.Data.STATUS_SEND : xSocket.Data.STATUS_RESPONSE);
             }).catch(function (e){
-                reject(e);
+                socketData.destroy(e.message || 'Failed send #2e4uxDql');
             });
         });
-        p.catch(function (){});
-        return p;
+        sendPromise.catch(function (){});
+        return sendPromise;
     };
 
     /**
@@ -565,17 +653,25 @@ xSocket.xSocketObject = function (__isServer, __req){
      * @param type
      * @param data
      * @param ttl
-     * @returns {Promise<object>}
+     * @returns {Promise<xSocket.Data>}
      */
     this.sendReadyResponse = function (type, data, ttl){
         return new Promise(function (resolve, reject){
             $this.send(type, data, ttl).then(function(xSocketData) {
+                if(xSocketData.isResponse()){
+                    if(xSocketData.getError()){
+                        return reject(new Error(xSocketData.getError()));
+                    }
+                    return resolve(xSocketData);
+                }
+
                 xSocketData.on('response', function (data, err){
                     if(err){
                         return reject(new Error(err));
                     }
-                    resolve(data);
+                    resolve(xSocketData);
                 });
+
             }).catch(function (e){
                 reject(e);
             })
@@ -584,41 +680,11 @@ xSocket.xSocketObject = function (__isServer, __req){
 
     /**
      *
-     * @param type
-     * @param data
-     * @param ttl
-     * @returns {Promise<object>}
+     * @returns {Promise<xSocket.Data>}
      */
-    this.xSend = function (type, data, ttl){
-        return new Promise(function (resolve, reject){
-            $this.sendReadyResponse(type, data, ttl).then(function (data){
-                if(typeof data['error'] === 'string'){
-                    return reject(new Error(data['error']));
-                }
-                resolve(data);
-            }).catch(function(e){
-                reject(e);
-            });
-        });
+    this.sendReady = function (){
+        return this.sendReadyResponse.apply(this, arguments);
     }
-
-    /**
-     *
-     * @param xSocketData
-     * @param ttl
-     * @returns {Promise<{}>}
-     */
-    this.transportSocketData = function (xSocketData, ttl){
-        return new Promise(function(resolve, reject) {
-            $this.sendReadyResponse(xSocketData.getType(), xSocketData.getData(), ttl).then(function(data){
-                resolve(data);
-                xSocketData.resSuccess(data);
-            }).catch(function (e) {
-                reject(e);
-                xSocketData.resError(e.message || '');
-            });
-        });
-    };
 
     /**
      *
@@ -719,53 +785,65 @@ xSocket.xSocketObject = function (__isServer, __req){
             var socketData;
             if(type === 'SD|create'){
                 if(typeof data['type'] == 'string' && data['type'].length || !$this.getSocketData(data['ID'])){
-                    socketData = new xSocket.Data();
-                    socketData.__ID   = String(data['ID']);
-                    socketData.__type = String(data['type']);
-                    socketData.__data = Object(data['data']);
-                    socketData.response = function (data){
+                    socketData = new xSocket.Data(false, data);
+                    socketData.response = function (data, error){
                         var p = new Promise(function (resolve, reject){
-                            if(typeof data !== 'object'){
-                                return reject(new Error('Invalid data object'));
+                            if(socketData.getDestroy() || socketData.isResponse() || !socketData.getTTL()){
+                                return false;
                             }
+                            socketData.setResData(data);
+                            socketData.setError(error);
+
+                            socketData.on('destroy', function (msg){
+                                reject(new Error(msg || 'Error #sk2jrqF'))
+                            });
+                            socketData.on('response', function (){
+                                resolve(socketData);
+                            });
                             $this.getWsReady().then(function (ws){
                                 if(ws.sendObject(['SD|update', {
                                         'ID' : socketData.getID(),
-                                        'data' : data
+                                        'data' : socketData.getResData(),
+                                        'error' : socketData.getError()
                                     }
                                 ])){
-                                    resolve(socketData);
-                                    socketData.destroy();
+                                    socketData.setStatus(xSocket.Data.STATUS_RESPONSE);
                                 }else{
-                                    reject(new Error('Failed send'));
+                                    socketData.destroy('Error #e318Js');
                                 }
                             }).catch(function (e){
-                                reject(e);
+                                socketData.destroy(e.message || 'Error #er8avhT');
                             });
                         });
                         p.catch(function(){});
                         return p;
                     };
                     $this.emit('data', socketData);
-                    $this.emit('|'+socketData.getType(), socketData);
+                    $this.emit('data|'+socketData.getType(), socketData);
+                    if(!socketData.getTTL()){
+                        socketData.setStatus(xSocket.Data.STATUS_RESPONSE);
+                    }
                 }
             }else if(type === 'SD|update'){
                 socketData = $this.getSocketData(data['ID']);
                 if(socketData){
-                    socketData.emit('response', data['data'], false);
+                    socketData.setResData(data);
+                    socketData.setError(data['error']);
+                    socketData.setStatus(xSocket.Data.STATUS_RESPONSE);
                 }
             }
         });
     })();
 };
 
-xSocket.Client = function xSocketClient(__urlList, __query, __settings){
+xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
 
     // Extend
     xSocket.helpers.EventEmitter.call(this);
     this.setMaxListeners(0);
 
     var $this = this;
+    var __urlList = [];
     var __ws;
     var __SocketObject = new xSocket.xSocketObject();
 
@@ -922,7 +1000,7 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
 
     /**
      *
-     * @returns {Promise<object>}
+     * @returns {Promise<xSocket.Data>}
      */
     this.sendReadyResponse = function (){
         return __SocketObject.sendReadyResponse.apply(this, arguments);
@@ -930,19 +1008,11 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
 
     /**
      *
-     * @returns {Promise<object>}
+     * @returns {Promise<xSocket.Data>}
      */
-    this.xSend = function (){
-        return __SocketObject.xSend.apply(this, arguments);
-    };
-
-    /**
-     *
-     * @returns {*}
-     */
-    this.transportSocketData = function (){
-        return __SocketObject.transportSocketData.apply(this, arguments);
-    };
+    this.sendReady = function (){
+        return __SocketObject.sendReady.apply(this, arguments);
+    }
 
     /**
      *
@@ -957,7 +1027,13 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
      * Construct
      */
     (function (){
-        __urlList = typeof __urlList === "object" ? __urlList : [];
+        if(typeof serverUrl === "object"){
+            for(var i in serverUrl){
+                __urlList.push(serverUrl[i]);
+            }
+        }else if(typeof serverUrl === "string"){
+            __urlList.push(serverUrl);
+        }
         if(!__urlList.length){
             throw new Error('Invalid urlList');
         }

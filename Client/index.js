@@ -1,10 +1,11 @@
-xSocket.Client = function xSocketClient(__urlList, __query, __settings){
+xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
 
     // Extend
     xSocket.helpers.EventEmitter.call(this);
     this.setMaxListeners(0);
 
     var $this = this;
+    var __urlList = [];
     var __ws;
     var __SocketObject = new xSocket.xSocketObject();
 
@@ -161,7 +162,7 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
 
     /**
      *
-     * @returns {Promise<object>}
+     * @returns {Promise<xSocket.Data>}
      */
     this.sendReadyResponse = function (){
         return __SocketObject.sendReadyResponse.apply(this, arguments);
@@ -169,19 +170,11 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
 
     /**
      *
-     * @returns {Promise<object>}
+     * @returns {Promise<xSocket.Data>}
      */
-    this.xSend = function (){
-        return __SocketObject.xSend.apply(this, arguments);
-    };
-
-    /**
-     *
-     * @returns {*}
-     */
-    this.transportSocketData = function (){
-        return __SocketObject.transportSocketData.apply(this, arguments);
-    };
+    this.sendReady = function (){
+        return __SocketObject.sendReady.apply(this, arguments);
+    }
 
     /**
      *
@@ -196,7 +189,13 @@ xSocket.Client = function xSocketClient(__urlList, __query, __settings){
      * Construct
      */
     (function (){
-        __urlList = typeof __urlList === "object" ? __urlList : [];
+        if(typeof serverUrl === "object"){
+            for(var i in serverUrl){
+                __urlList.push(serverUrl[i]);
+            }
+        }else if(typeof serverUrl === "string"){
+            __urlList.push(serverUrl);
+        }
         if(!__urlList.length){
             throw new Error('Invalid urlList');
         }

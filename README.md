@@ -44,11 +44,13 @@ xServer.on('connect', (xSocketObject) => {
 
         // Timeout 5s and response
         setTimeout(() => {
-            xSocketData.response({'welcome' : 'Hello ' + xSocketObject.getQuery()['name']}).then(function (){
+            xSocketData.response({'welcome' : 'Hello ' + xSocketObject.getQuery()['name']}, false).then(function (){
                 console.log('Response send success', xSocketData.getID());
             }).catch(function (e) {
                 console.log('Response send failed', xSocketData.getID(), e.message);
             });
+            // OR
+            // xSocketData.response({}, 'Permision denied');
         }, 5000);
     });
 
@@ -96,19 +98,36 @@ xClient.on('error', function (err) {
 xClient.on('connect', function (xSocketObject) {
     console.log('connect event:', xSocketObject.getID());
 
+
+    // Send message 
     xSocketObject.send(
         'helloServer', // Name message
         {'message' : 'Hello server'}, // Data message
-        2000 // TTL (ready connection)
+        2000 // TTL (ready response (default: 5s)
         ).then(function(xSocketData){
-            console.log('Client send message #'+xSocketData.getID(), xSocketData.getData());
-
-            xSocketData.on('response', function (data){
-               console.log('Server response #'+xSocketData.getID(), data);
+            console.log('Send to server message #'+xSocketData.getID(), xSocketData.getType, xSocketData.getData());
+            
+            // Ready response
+            xSocketData.on('response', function (xSocketData, error){
+                if(error){
+                    return console.error('Server responsed error', e.message);
+                }
+                console.log('Server responsed #'+xSocketData.getID(), xSocketData.getType, xSocketData.getResData());
             });
     }).catch(function (e){
-        console.log('message not send', e.message);
+        console.log('Message not sended, info:', e.message);
     });
+    // OR
+    //xSocketObject.sendReady(
+    //    'helloServer', // Name message
+    //    {'message' : 'Hello server'}, // Data message
+    //    2000 // TTL (ready response (default: 5s)
+    //).then(function (xSocketObject){
+    //    console.log('Server responsed #'+xSocketData.getID(), xSocketData.getType, xSocketData.getResData());
+    //}).catch(function (e){
+    //    console.error('Server responsed error', e.message);
+    //});
+    
 });
 
 // Reconnect event (Only works if 'socketObjectTimeout' is specified)
