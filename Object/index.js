@@ -208,7 +208,7 @@ xSocket.xSocketObject = function (__isServer, __req){
     this.sendReadyResponse = function (type, data, ttl){
         return new Promise(function (resolve, reject){
             $this.send(type, data, ttl).then(function(xSocketData) {
-                if(xSocketData.isResponse()){
+                if(xSocketData.isResponse() || xSocketData.getDestroy()){
                     if(xSocketData.getError()){
                         return reject(new Error(xSocketData.getError()));
                     }

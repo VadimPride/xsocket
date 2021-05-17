@@ -93,7 +93,7 @@ xSocket.Data = function xSocketData(__isOutput, __object){
      * @returns {string|boolean}
      */
     this.getError = function (){
-        return this.__error || this.getDestroy() || false;
+        return this.__error || false;
     };
 
     /**
