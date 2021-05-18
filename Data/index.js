@@ -55,10 +55,30 @@ xSocket.Data = function xSocketData(__isOutput, __object){
 
     /**
      *
+     * @param key
+     * @param def
+     * @returns {*}
+     */
+    this.getDataVal = function (key, def){
+        return this.getData()[key] || def;
+    };
+
+    /**
+     *
      * @returns {{}}
      */
     this.getResData = function (){
-        return this.__resData;
+        return this.__resData || {};
+    };
+
+    /**
+     *
+     * @param key
+     * @param def
+     * @returns {*}
+     */
+    this.getResDataVal = function (key, def){
+        return this.getResData()[key] || def;
     };
 
     /**
