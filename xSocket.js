@@ -827,8 +827,8 @@ xSocket.xSocketObject = function (__isServer, __req){
             }else if(type === 'SD|update'){
                 socketData = $this.getSocketData(data['ID']);
                 if(socketData){
-                    socketData.setResData(data);
-                    socketData.setError(data['error']);
+                    socketData.setResData(data['data']);
+                    socketData.setError(data['error'] || false);
                     socketData.setStatus(xSocket.Data.STATUS_RESPONSE);
                 }
             }
