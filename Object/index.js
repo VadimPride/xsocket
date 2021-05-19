@@ -284,9 +284,13 @@ xSocket.xSocketObject = function (__isServer, __req){
             __query = Object(ws['query'] || {});
             if(__query['xSOId']) delete  __query['xSOId'];
             if(__query['xSOSign']) delete  __query['xSOSign'];
-            if(!__isServer){
-                $this.emit('update', $this);
+            if(__isServer){
+                ws.sendObject(['SO|update', {
+                    'xSOId': $this.getID(),
+                    'xSOSign' : $this.getSign()
+                }]);
             }
+            $this.emit('update', $this);
         }
         __ws = ws;
         ws.SocketObject = ws;
@@ -299,11 +303,13 @@ xSocket.xSocketObject = function (__isServer, __req){
      */
     (function (){
         $this.on('update', function (){
-            var SDlist = $this.getSocketDataList();
-            for(var i in SDlist){
-                try{
-                    SDlist[i].destroy('SocketObject|destroy');
-                }catch (e){}
+            if(!__isServer){
+                var SDlist = $this.getSocketDataList();
+                for(var i in SDlist){
+                    try{
+                        SDlist[i].destroy('SocketObject|destroy');
+                    }catch (e){}
+                }
             }
         });
         $this.on('ws|disconnect', function (msg){

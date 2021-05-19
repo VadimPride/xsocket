@@ -85,10 +85,6 @@ xSocket.Server = class xSocketServer extends events
                 let s = $this.getSocketObject(wsClient.query['xSOId']);
                 if(s && s.getSign() === wsClient.query['xSOSign']){
                     if(s.update(wsClient)){
-                        wsClient.sendObject(['SO|update', {
-                            'xSOId': s.getID(),
-                            'xSOSign' : s.getSign()
-                        }]);
                         SocketObject = s;
                     }
                 }
@@ -97,24 +93,15 @@ xSocket.Server = class xSocketServer extends events
                 wsClient.query['xSOId'] = uuid.v4();
                 wsClient.query['xSOSign'] = uuid.v4();
                 SocketObject = new xSocket.xSocketObject(true, req);
+                SocketObject.once('update', () => {
+                    $this.emit('connect', SocketObject);
+                });
                 if(SocketObject.update(wsClient)){
                     $this.__socketObjectList[SocketObject.getID()] = SocketObject;
                     if($this.getSettingsVal('auth', false)){
-                        $this.useEmit('auth', SocketObject).then(() => {
-                            wsClient.sendObject(['SO|update', {
-                                'xSOId': SocketObject.getID(),
-                                'xSOSign' : SocketObject.getSign()
-                            }]);
-                            $this.emit('connect', SocketObject);
-                        }).catch((e) => {
+                        $this.useEmit('auth', SocketObject).catch((e) => {
                             SocketObject.destroy(e.message || 'deniedAuth');
                         });
-                    }else{
-                        wsClient.sendObject(['SO|update', {
-                            'xSOId': SocketObject.getID(),
-                            'xSOSign' : SocketObject.getSign()
-                        }]);
-                        $this.emit('connect', SocketObject);
                     }
                     let SocketObjectTimeout = parseInt($this.getSettingsVal('socketObjectTimeout', 0));
                     if(SocketObjectTimeout !== SocketObjectTimeout || SocketObjectTimeout < 0){
