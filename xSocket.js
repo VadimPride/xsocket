@@ -700,11 +700,9 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
 
     /**
      *
-     * @returns {Promise<xSocket.Data>}
+     * * @returns {Promise<xSocket.Data>}
      */
-    this.sendReady = function (){
-        return this.sendReadyResponse.apply(this, arguments);
-    }
+    this.sendReady = this.sendReadyResponse;
 
     /**
      *
