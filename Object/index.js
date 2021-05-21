@@ -1,9 +1,9 @@
 /**
  *
- * @param __isServer
+ * @param __ServerConfigure
  * @param __req
  */
-xSocket.xSocketObject = function (__isServer, __req){
+xSocket.xSocketObject = function (__ServerConfigure, __req){
 
     // Extend
     xSocket.helpers.EventEmitter.call(this);
@@ -165,7 +165,7 @@ xSocket.xSocketObject = function (__isServer, __req){
      * @param ttl
      * @returns {Promise<xSocket.Data>}
      */
-    this.send = function (type, data, ttl){
+    this.send = function (type, data, ttl) {
         var sendPromise = new Promise(function (resolve, reject) {
             var socketData = new xSocket.Data(true, {
                 'ID' : xSocket.helpers.getUID(),
@@ -205,7 +205,7 @@ xSocket.xSocketObject = function (__isServer, __req){
      * @param ttl
      * @returns {Promise<xSocket.Data>}
      */
-    this.sendReadyResponse = function (type, data, ttl){
+    this.sendReadyResponse = function (type, data, ttl) {
         return new Promise(function (resolve, reject){
             $this.send(type, data, ttl).then(function(xSocketData) {
                 if(xSocketData.isResponse() || xSocketData.getDestroy()){
@@ -284,13 +284,14 @@ xSocket.xSocketObject = function (__isServer, __req){
             __query = Object(ws['query'] || {});
             if(__query['xSOId']) delete  __query['xSOId'];
             if(__query['xSOSign']) delete  __query['xSOSign'];
-            if(__isServer){
-                ws.sendObject(['SO|update', {
-                    'xSOId': $this.getID(),
-                    'xSOSign' : $this.getSign()
-                }]);
-            }
             $this.emit('update', $this);
+        }
+        if($this.isServer()){
+            ws.sendObject(['SO|update', {
+                'xSOId': $this.getID(),
+                'xSOSign' : $this.getSign(),
+                'configure' : typeof __ServerConfigure === 'object' ? __ServerConfigure : {}
+            }]);
         }
         __ws = ws;
         ws.SocketObject = ws;
@@ -300,16 +301,28 @@ xSocket.xSocketObject = function (__isServer, __req){
 
     /**
      *
+     * @returns {boolean}
+     */
+    this.isServer = function (){
+        return !!__ServerConfigure;
+    };
+
+    /**
+     *
      */
     (function (){
+
+        $this.on('destroy', function (){
+            var SDlist = $this.getSocketDataList();
+            for(var i in SDlist){
+                try{
+                    SDlist[i].destroy('SocketObject|destroy');
+                }catch (e){}
+            }
+        });
         $this.on('update', function (){
-            if(!__isServer){
-                var SDlist = $this.getSocketDataList();
-                for(var i in SDlist){
-                    try{
-                        SDlist[i].destroy('SocketObject|destroy');
-                    }catch (e){}
-                }
+            if(!$this.isServer()){
+
             }
         });
         $this.on('ws|disconnect', function (msg){
@@ -389,5 +402,6 @@ xSocket.xSocketObject = function (__isServer, __req){
                 }
             }
         });
+
     })();
 };

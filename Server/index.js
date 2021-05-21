@@ -34,6 +34,11 @@ xSocket.Server = class xSocketServer extends events
                 }catch (e){}
             }, 5000);
         });
+        let SocketObjectTimeout = parseInt($this.getSettingsVal('socketObjectTimeout', 0));
+        if(SocketObjectTimeout !== SocketObjectTimeout || SocketObjectTimeout < 0){
+            SocketObjectTimeout = 0;
+            console.warn('[warn|xSocket]', 'socketObjectTimeout invalid value,', 'set default is 0');
+        }
         this.__ws = new ws.Server({ 'server' : this.__http});
         this.__ws.on('connection', (wsClient, req) => {
             wsClient.isConnection = () => {
@@ -92,7 +97,7 @@ xSocket.Server = class xSocketServer extends events
             if(!SocketObject){
                 wsClient.query['xSOId'] = uuid.v4();
                 wsClient.query['xSOSign'] = uuid.v4();
-                SocketObject = new xSocket.xSocketObject(true, req);
+                SocketObject = new xSocket.xSocketObject({'socketObjectTimeout' : SocketObjectTimeout}, req);
                 SocketObject.once('update', () => {
                     $this.emit('connect', SocketObject);
                 });
@@ -103,11 +108,7 @@ xSocket.Server = class xSocketServer extends events
                             SocketObject.destroy(e.message || 'deniedAuth');
                         });
                     }
-                    let SocketObjectTimeout = parseInt($this.getSettingsVal('socketObjectTimeout', 0));
-                    if(SocketObjectTimeout !== SocketObjectTimeout || SocketObjectTimeout < 0){
-                        SocketObjectTimeout = 0;
-                        console.warn('[warn|xSocket]', 'socketObjectTimeout invalid value,', 'set default is 0');
-                    }
+
                     let soTimeout = undefined;
                     SocketObject.on('disconnect', (SocketObject) => {
                         soTimeout = setTimeout((SocketObject) => {
@@ -142,7 +143,7 @@ xSocket.Server = class xSocketServer extends events
                     wsClient.closeConnection('pingTimeout');
                 }
                 msgInc = 0;
-            }, 23000);
+            }, 30000);
             wsClient.onmessage = (e) => {
                 msgInc++;
                 let msg = String(e.data || '');
