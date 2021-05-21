@@ -336,6 +336,7 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
                 setDestroyTimeout(false);
             });
         });
+        $this.getWs().catch(function (){});
     })();
 
 };
