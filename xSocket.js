@@ -921,7 +921,7 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
      */
     this.getSocketObjectReady = function (){
         return new Promise(function (resolve) {
-            if($this.getSocketObject()) return $this.getSocketObject();
+            if($this.getSocketObject()) return resolve($this.getSocketObject());
             $this.on('connect', function (socketObject) {
                 resolve(socketObject);
             });
@@ -1102,8 +1102,8 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
     this.sendReadyResponse = function (){
         var ar = arguments;
         return new Promise(function (resolve, reject){
-            $this.getSocketObjectReady().then(function (){
-                __SocketObject.sendReadyResponse.apply(this, ar).then(function (e){
+            $this.getSocketObjectReady().then(function (socketObject){
+                socketObject.sendReadyResponse.apply(this, ar).then(function (e){
                     resolve(e);
                 }).catch(function (e){
                     reject(e);
@@ -1121,8 +1121,8 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
     this.sendReady = function (){
         var ar = arguments;
         return new Promise(function (resolve, reject){
-            $this.getSocketObjectReady().then(function (){
-                __SocketObject.sendReady.apply(this, ar).then(function (e){
+            $this.getSocketObjectReady().then(function (socketObject){
+                socketObject.sendReady.apply(this, ar).then(function (e){
                     resolve(e);
                 }).catch(function (e){
                     reject(e);
