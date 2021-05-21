@@ -113,7 +113,6 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
                 return false;
             };
             var msg;
-            var isCreate = false;
             var msgInc = 0;
             var pingTimeout = false;
             var pongTimeout = false;
@@ -174,7 +173,7 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
                             ws.closeConnection('update');
                         }
                     }else{
-                        if(isCreate && __SocketObject){
+                        if(__SocketObject){
                             __SocketObject.emit('ws|message', body[0], body[1]);
                         }
                     }
@@ -219,13 +218,15 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
 
     /**
      *
+     * @param type
+     * @param data
+     * @param ttl
      * @returns {Promise<xSocket.Data>}
      */
-    this.sendReadyResponse = function (){
-        var ar = arguments;
+    this.sendReadyResponse = function (type, data, ttl){
         return new Promise(function (resolve, reject){
             $this.getSocketObjectReady().then(function (socketObject){
-                socketObject.sendReadyResponse.apply(this, ar).then(function (e){
+                socketObject.sendReadyResponse(type, data, ttl).then(function (e){
                     resolve(e);
                 }).catch(function (e){
                     reject(e);
@@ -238,13 +239,15 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
 
     /**
      *
+     * @param type
+     * @param data
+     * @param ttl
      * @returns {Promise<xSocket.Data>}
      */
-    this.sendReady = function (){
-        var ar = arguments;
+    this.sendReady = function (type, data, ttl){
         return new Promise(function (resolve, reject){
             $this.getSocketObjectReady().then(function (socketObject){
-                socketObject.sendReady.apply(this, ar).then(function (e){
+                socketObject.sendReady(type, data, ttl).then(function (e){
                     resolve(e);
                 }).catch(function (e){
                     reject(e);

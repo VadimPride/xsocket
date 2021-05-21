@@ -356,11 +356,10 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
                     socketData.response = function (data, error){
                         var p = new Promise(function (resolve, reject){
                             if(socketData.getDestroy() || socketData.isResponse() || !socketData.getTTL()){
-                                return false;
+                                return reject('destroy');
                             }
                             socketData.setResData(data);
                             socketData.setError(error);
-
                             socketData.on('destroy', function (msg){
                                 reject(new Error(msg || 'Error #sk2jrqF'))
                             });
