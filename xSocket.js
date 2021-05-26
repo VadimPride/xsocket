@@ -420,13 +420,17 @@ xSocket.Data = function xSocketData(__isOutput, __object){
     /**
      *
      * @param msg
+     * @param isSetError
      * @returns {boolean}
      */
-    this.destroy = function (msg){
+    this.destroy = function (msg, isSetError){
         if(this.getDestroy()){
             return false;
         }
         this.__destroy = String(typeof msg === 'string' && msg.length ? msg :  'destroy');
+        if(isSetError && !this.getError()){
+            this.setError(this.__destroy);
+        }
         if(this.getStatus() !== xSocket.Data.STATUS_RESPONSE){
             $this.setStatus(xSocket.Data.STATUS_RESPONSE);
         }
@@ -440,10 +444,10 @@ xSocket.Data = function xSocketData(__isOutput, __object){
      */
     (function (){
         var ttlDestroy = setTimeout(function (){
-            $this.destroy('ttl');
+            $this.destroy('ttl', true);
         }, $this.getTTL());
         var destroyTimeout = setTimeout(function ($this){
-            $this.destroy('responseTimeout');
+            $this.destroy('responseTimeout', true);
         }, $this.getTTL() > DEFAULT_TIMEOUT ? $this.getTTL() : DEFAULT_TIMEOUT, $this);
 
         $this.once('destroy', function (){
@@ -457,7 +461,7 @@ xSocket.Data = function xSocketData(__isOutput, __object){
 
         $this.on('setStatus', function (status){
             if(status === xSocket.Data.STATUS_RESPONSE){
-                $this.emit('response', $this.getResData(), $this.getError())
+                $this.emit('response', $this.getResData(), $this.getError());
                 $this.destroy('response');
             }
         });
