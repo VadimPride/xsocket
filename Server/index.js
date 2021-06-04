@@ -72,14 +72,16 @@ xSocket.Server = class xSocketServer extends events
                 let split = queryString.split('&');
                 for (let i in split)
                 {
-                    let key = split[i].split('=')[0];
-                    if (!key.length) continue;
-                    let val = split[i].split('=')[1] || undefined;
-                    let valArr = typeof val === 'string' ? val.split('#') : [].push(val);
-                    query[key] = valArr[0];
-                    if(valArr[1]){
-                        query['_hashTag_'] = valArr[1];
-                    }
+                    try{
+                        let key = decodeURIComponent(split[i].split('=')[0]);
+                        if (!key.length) continue;
+                        let val = decodeURIComponent(split[i].split('=')[1]) || undefined;
+                        let valArr = typeof val === 'string' ? val.split('#') : [].push(val);
+                        query[key] = valArr[0];
+                        if(valArr[1]){
+                            query['_hashTag_'] = valArr[1];
+                        }
+                    }catch (e){}
                 }
                 return query;
             })(req.url || '');
