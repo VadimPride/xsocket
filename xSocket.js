@@ -954,7 +954,9 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
 
             if(Object.keys(__query).length){
                 for (var i in __query){
-                    url += String(i)+'='+String(__query[i])+'&';
+                    try{
+                        url += encodeURIComponent(String(i))+'='+encodeURIComponent(String(__query[i]))+'&';
+                    }catch (e){}
                 }
             }
 
