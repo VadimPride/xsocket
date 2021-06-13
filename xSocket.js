@@ -217,7 +217,7 @@ xSocket.helpers = new function helpersObject (){
  * @param __object
  * @constructor
  */
-xSocket.Data = function xSocketData(__isOutput, __object){
+xSocket.Data = function xSocketData(__isOutput, __object, __socketObject){
     __object = typeof __object === 'object' ? __object : {};
     xSocket.helpers.EventEmitter.call(this);
     this.setMaxListeners(0);
@@ -308,7 +308,15 @@ xSocket.Data = function xSocketData(__isOutput, __object){
      */
     this.getDestroy = function (){
         return this.__destroy || false;
-    }
+    };
+    
+    /**
+     *
+     * @return {boolean}
+     */
+    this.getSocketObject = function (){
+        return __socketObject || false;
+    };
 
     /**
      *
@@ -646,7 +654,7 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
                 'type' : type,
                 'data' : data,
                 'ttl' : ttl
-            });
+            }, $this);
             if(socketData.getTTL()){
                 __socketDataList[socketData.getID()] = socketData;
                 socketData.on('destroy', function (){
@@ -714,7 +722,7 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
      * @returns {boolean}
      */
     this.destroy = function (msg){
-        if(__destroy){
+        if($this.isDestroy()){
             return false;
         }
         __destroy = String(msg || 'destroy');
@@ -798,7 +806,8 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
             }
         });
         $this.on('ws|disconnect', function (msg){
-            $this.emit('disconnect', $this, String(msg || ''));
+            msg = typeof msg === 'string' ? msg : 'unknown';
+            $this.emit('disconnect', $this, msg);
             if(msg === 'end'){
                 $this.destroy('end');
             }
@@ -826,7 +835,7 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
             var socketData;
             if(type === 'SD|create'){
                 if(typeof data['type'] == 'string' && data['type'].length || !$this.getSocketData(data['ID'])){
-                    socketData = new xSocket.Data(false, data);
+                    socketData = new xSocket.Data(false, data, $this);
                     socketData.response = function (data, error){
                         var p = new Promise(function (resolve, reject){
                             if(socketData.getDestroy() || socketData.isResponse() || !socketData.getTTL()){
@@ -995,27 +1004,25 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
             };
             var msg;
             var msgInc = 0;
-            var pingTimeout = false;
             var pongTimeout = false;
             ws.onopen = function (){
                 __ws = ws;
                 $this.emit('ws|connect', ws);
-                pingTimeout = setInterval(function (){
-                    ws.sendMessage('ping');
-                }, 5000);
                 pongTimeout = setInterval(function (){
                     if(!msgInc){
-                        ws.closeConnection('pongTimeout');
+                        ws.closeConnection('pingTimeout');
                     }
                     msgInc = 0;
-                }, 31000);
+                }, 21000);
                 resolve(__ws);
             }
             ws.onmessage = function (e){
                 msgInc++;
                 var msg = String(e.data || '');
                 var body = '';
-                if(msg === 'pong') return;
+                if(msg === 'ping'){
+                    return ws.sendMessage('pong');
+                }
                 try {
                     body = JSON.parse(msg);
                     if (typeof body !== 'object' || typeof body[0] !== 'string' || typeof body[1] !== 'object') {
@@ -1061,7 +1068,6 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
                 }catch (e){}
             };
             ws.onclose = function (e){
-                if(pingTimeout) try{ clearInterval(pingTimeout); }catch (e){}
                 if(pongTimeout) try{ clearInterval(pongTimeout); }catch (e){}
 
                 __ws = undefined;
