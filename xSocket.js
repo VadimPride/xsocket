@@ -189,7 +189,7 @@ xSocket.helpers = new function helpersObject (){
                 if(typeof __listerens[name][i] === 'function'){
                     __listerens[name][i].call(this, data_1, data_2, data_3, data_4, data_5);
                     try{
-                        if(i.indexOf(__prefix_once) >= 0 && typeof __listerens[name][i] === 'function'){
+                        if(i.indexOf(__prefix_once) >= 0){
                             $this.off(name, __listerens[name][i]);
                         }
                     }catch (e){}
