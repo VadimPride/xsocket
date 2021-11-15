@@ -90,10 +90,8 @@ xSocket.Server = class xSocketServer extends events
             wsClient.query['xSOSign'] = String(wsClient.query['xSOSign'] || '');
             if(wsClient.query['xSOId'].length && wsClient.query['xSOSign'].length){
                 let s = $this.getSocketObject(wsClient.query['xSOId']);
-                if(s && s.getSign() === wsClient.query['xSOSign']){
-                    if(s.update(wsClient)){
-                        SocketObject = s;
-                    }
+                if(s && s.getSign() === wsClient.query['xSOSign'] && s.update(wsClient)){
+                    SocketObject = s;
                 }
             }
             if(!SocketObject){
@@ -103,20 +101,32 @@ xSocket.Server = class xSocketServer extends events
                 SocketObject.once('update', () => {
                     $this.emit('connect', SocketObject);
                 });
-                if(SocketObject.update(wsClient)){
-                    $this.__socketObjectList[SocketObject.getID()] = SocketObject;
-                    if($this.getSettingsVal('auth', false)){
-                        $this.useEmit('auth', SocketObject).catch((e) => {
-                            SocketObject.destroy(e.message || 'deniedAuth');
+                const isAuth = $this.getSettingsVal('auth', false);
+                if(!isAuth){
+                    $this.use('auth', (SocketObject, successCallback) => {
+                        successCallback();
+                    });
+                }
+                $this.useEmit('auth', SocketObject).then(() => {
+                    if(SocketObject.update(wsClient)){
+                        $this.__socketObjectList[SocketObject.getID()] = SocketObject;
+                        let soTimeout = undefined;
+                        SocketObject.on('disconnect', (SocketObject) => {
+                            soTimeout = setTimeout((SocketObject) => {
+                                SocketObject.destroy('socketObjectTimeout');
+                            }, SocketObjectTimeout, SocketObject);
+                            SocketObject.once('connect', () => {
+                                if(soTimeout){
+                                    try{
+                                        clearTimeout(soTimeout);
+                                        soTimeout = undefined;
+                                    }catch (e){}
+                                }
+                            });
                         });
-                    }
-
-                    let soTimeout = undefined;
-                    SocketObject.on('disconnect', (SocketObject) => {
-                        soTimeout = setTimeout((SocketObject) => {
-                            SocketObject.destroy('socketObjectTimeout');
-                        }, SocketObjectTimeout, SocketObject);
-                        SocketObject.once('connect', () => {
+                        SocketObject.once('destroy', (SocketObject) => {
+                            wsClient.closeConnection(SocketObject.getDestroy() || 'destroy');
+                            delete $this.__socketObjectList[SocketObject.getID()];
                             if(soTimeout){
                                 try{
                                     clearTimeout(soTimeout);
@@ -124,20 +134,12 @@ xSocket.Server = class xSocketServer extends events
                                 }catch (e){}
                             }
                         });
-                    });
-                    SocketObject.once('destroy', (SocketObject) => {
-                        wsClient.closeConnection(SocketObject.getDestroy() || 'destroy');
-                        delete $this.__socketObjectList[SocketObject.getID()];
-                        if(soTimeout){
-                            try{
-                                clearTimeout(soTimeout);
-                                soTimeout = undefined;
-                            }catch (e){}
-                        }
-                    });
-                }else{
-                    wsClient.closeConnection('update');
-                }
+                    }else{
+                        wsClient.closeConnection('update');
+                    }
+                }).catch((e) => {
+                    SocketObject.destroy(e.message || 'deniedAuth');
+                });
             }
             let msgInc = 0;
             var countPing = 0;
@@ -233,12 +235,30 @@ xSocket.Server = class xSocketServer extends events
       const $this = this;
       return new Promise((resolve, reject) => {
           const callback = typeof $this.__useCallback[target] == 'function' ? $this.__useCallback[target] : false;
+          let timeout = false;
           const successCallback = (data, data1, data2) => {
+              try{
+                  if(timeout){
+                      clearTimeout(timeout);
+                      timeout = false;
+                  }
+              }catch (e){}
               resolve(data, data1, data2);
           };
           const failedCallback = (message) => {
+              try{
+                  if(timeout){
+                      clearTimeout(timeout);
+                      timeout = false;
+                  }
+              }catch (e){}
               reject(new Error(typeof message === 'string' ? message : ''));
           };
+          timeout = setTimeout((failedCallback) => {
+                if(typeof failedCallback === 'function'){
+                    failedCallback('timeout');
+                }
+          }, 10000, failedCallback);
           if(!callback){
               return failedCallback('callbackNotFound');
           }
