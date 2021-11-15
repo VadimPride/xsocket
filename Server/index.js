@@ -140,17 +140,23 @@ xSocket.Server = class xSocketServer extends events
                 }
             }
             let msgInc = 0;
+            var countPing = 0;
             var pingTimeout = setInterval(function (){
-                if(!msgInc){
-                    wsClient.closeConnection('pingTimeout');
+                if(countPing > 4){
+                    if(!msgInc){
+                        return wsClient.closeConnection('pingTimeout');
+                    }
+                    msgInc = 0;
+                    countPing = 0;
                 }
-                msgInc = 0;
-            }, 30000);
+                wsClient.sendMessage('ping');
+                countPing++;
+            }, 5000);
             wsClient.onmessage = (e) => {
                 msgInc++;
                 let msg = String(e.data || '');
-                if(msg === 'ping'){
-                    return wsClient.sendMessage('pong');
+                if(msg === 'pong'){
+                    return;
                 }
                 if(SocketObject){
                     try{

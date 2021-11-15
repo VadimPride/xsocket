@@ -116,27 +116,25 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
             };
             var msg;
             var msgInc = 0;
-            var pingTimeout = false;
             var pongTimeout = false;
             ws.onopen = function (){
                 __ws = ws;
                 $this.emit('ws|connect', ws);
-                pingTimeout = setInterval(function (){
-                    ws.sendMessage('ping');
-                }, 5000);
                 pongTimeout = setInterval(function (){
                     if(!msgInc){
-                        ws.closeConnection('pongTimeout');
+                        ws.closeConnection('pingTimeout');
                     }
                     msgInc = 0;
-                }, 31000);
+                }, 21000);
                 resolve(__ws);
             }
             ws.onmessage = function (e){
                 msgInc++;
                 var msg = String(e.data || '');
                 var body = '';
-                if(msg === 'pong') return;
+                if(msg === 'ping'){
+                    return ws.sendMessage('pong');
+                }
                 try {
                     body = JSON.parse(msg);
                     if (typeof body !== 'object' || typeof body[0] !== 'string' || typeof body[1] !== 'object') {
@@ -182,7 +180,6 @@ xSocket.Client = function xSocketClient(serverUrl, __query, __settings){
                 }catch (e){}
             };
             ws.onclose = function (e){
-                if(pingTimeout) try{ clearInterval(pingTimeout); }catch (e){}
                 if(pongTimeout) try{ clearInterval(pongTimeout); }catch (e){}
 
                 __ws = undefined;

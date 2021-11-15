@@ -4,7 +4,7 @@
  * @param __object
  * @constructor
  */
-xSocket.Data = function xSocketData(__isOutput, __object){
+xSocket.Data = function xSocketData(__isOutput, __object, __socketObject){
     __object = typeof __object === 'object' ? __object : {};
     xSocket.helpers.EventEmitter.call(this);
     this.setMaxListeners(0);
@@ -95,7 +95,15 @@ xSocket.Data = function xSocketData(__isOutput, __object){
      */
     this.getDestroy = function (){
         return this.__destroy || false;
-    }
+    };
+    
+    /**
+     *
+     * @return {boolean}
+     */
+    this.getSocketObject = function (){
+        return __socketObject || false;
+    };
 
     /**
      *

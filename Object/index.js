@@ -172,7 +172,7 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
                 'type' : type,
                 'data' : data,
                 'ttl' : ttl
-            });
+            }, $this);
             if(socketData.getTTL()){
                 __socketDataList[socketData.getID()] = socketData;
                 socketData.on('destroy', function (){
@@ -240,7 +240,7 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
      * @returns {boolean}
      */
     this.destroy = function (msg){
-        if(__destroy){
+        if($this.isDestroy()){
             return false;
         }
         __destroy = String(msg || 'destroy');
@@ -324,7 +324,8 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
             }
         });
         $this.on('ws|disconnect', function (msg){
-            $this.emit('disconnect', $this, String(msg || ''));
+            msg = typeof msg === 'string' ? msg : 'unknown';
+            $this.emit('disconnect', $this, msg);
             if(msg === 'end'){
                 $this.destroy('end');
             }
@@ -352,7 +353,7 @@ xSocket.xSocketObject = function (__ServerConfigure, __req){
             var socketData;
             if(type === 'SD|create'){
                 if(typeof data['type'] == 'string' && data['type'].length || !$this.getSocketData(data['ID'])){
-                    socketData = new xSocket.Data(false, data);
+                    socketData = new xSocket.Data(false, data, $this);
                     socketData.response = function (data, error){
                         var p = new Promise(function (resolve, reject){
                             if(socketData.getDestroy() || socketData.isResponse() || !socketData.getTTL()){
