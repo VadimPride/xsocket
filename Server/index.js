@@ -233,17 +233,21 @@ xSocket.Server = class xSocketServer extends events
       const $this = this;
       return new Promise((resolve, reject) => {
           const callback = typeof $this.__useCallback[target] == 'function' ? $this.__useCallback[target] : false;
-          const successCallback = () => {
-              resolve();
+          const successCallback = (data, data1, data2) => {
+              resolve(data, data1, data2);
           };
           const failedCallback = (message) => {
               reject(new Error(typeof message === 'string' ? message : ''));
           };
           if(!callback){
-              return failedCallback('');
+              return failedCallback('callbackNotFound');
           }
-
-          callback.call($this, data, successCallback, failedCallback);
+          try{
+              callback.call($this, data, successCallback, failedCallback);
+          }catch (e){
+              failedCallback(e.message);
+          }
+          
       });
     }
 
